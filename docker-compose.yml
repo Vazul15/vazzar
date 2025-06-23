@@ -1,0 +1,87 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vazzar_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./tmdb-backend
+      dockerfile: Dockerfile
+    container_name: tmdbbackend
+    environment:
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
+      DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
+      DATASOURCE_URL: ${DATASOURCE_URL}
+    ports:
+      - "8090:8080"
+
+  postgres:
+    image: postgres:17
+    container_name: vazzar_postgres
+    environment:
+      POSTGRES_DB: vazzar
+      POSTGRES_USER: ${DATASOURCE_USERNAME}
+      POSTGRES_PASSWORD: ${DATASOURCE_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=Etc/UTC
+      - WEBUI_PORT=8081
+      - TORRENTING_PORT=6881
+
+    volumes:
+      - ${QBITTORRENT_CONFIG_PATH}:/config
+      - ${DOWNLOADED_PATH}:/downloads
+    ports:
+      - 8081:8081
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=Etc/UTC
+    volumes:
+      - ${RADARR_CONFIG_PATH}:/config
+      - ${MOVIES_PATH}:/movies
+      - ${DOWNLOADED_PATH}:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    depends_on:
+      - qbittorrent
+
+  jackett:
+    image: linuxserver/jackett
+    container_name: jackett
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=Etc/UTC
+    volumes:
+      - ${JACKETT_CONFIG_PATH}:/config
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
