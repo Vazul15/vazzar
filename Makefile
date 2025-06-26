@@ -5,8 +5,8 @@ GROUP_ID := $(shell id -g)
 start: create-volumes create-network start-torrent start-radarr set-credentials start-radarr-backend
 
 clean:
-	- podman stop radarr qbittorrent || true
-	- podman rm -f radarr qbittorrent || true
+	- podman stop radarr qbittorrent radarr-backend || true
+	- podman rm -f radarr qbittorrent radarr-backend || true
 
 create-volumes:
 	- podman volume create qbittorrent-config 
