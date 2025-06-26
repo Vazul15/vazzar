@@ -1,4 +1,4 @@
 package com.vazzarmoviedb.radarrbackend.model.dto;
 
-public record FieldsNameValueDTO(String name, String value) {
+public record FieldsNameValueDTO(String name, Object value) {
 }

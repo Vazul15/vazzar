@@ -7,9 +7,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 
-
 @Configuration
 public class WebClientConfig {
+
     @Value("${radarr.api.key}")
     private String radarrApiKey;
 
@@ -22,7 +22,7 @@ public class WebClientConfig {
 
     @Bean
     public WebClient radarrClient() {
-        String baseUrl = String.format("http://$s:$d/api/v3", radarrApiHost, radarrApiPort);
+        String baseUrl = String.format("http://%s:%d/api/v3/", radarrApiHost, radarrApiPort);
 
         return WebClient.builder()
                 .baseUrl(baseUrl)
