@@ -100,6 +100,28 @@ configure-radarr:
 		-d '{"enable":true,"priority":1,"name":"qBittorrent","protocol":"torrent","implementation":"qBittorrent","configContract":"qBittorrentSettings","fields":[{"name":"host","value":"qbittorrent"},{"name":"port","value":8081},{"name":"username","value":"admin"},{"name":"password","value":"$(QBITTORRENT_PASSWORD)"},{"name":"category","value":"radarr"}]}' \
 	| jq -r 'if type=="array" then "Download client(s) present or updated" else .message // .error // "Download client configured" end'
 
+	@echo "Configuring Radarr Indexer (Jackett)..."
+	@curl -s -X POST http://localhost:7878/api/v3/indexer \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{ \
+			"enableRss": true, \
+			"enableAutomaticSearch": true, \
+			"enableInteractiveSearch": true, \
+			"priority": 25, \
+			"protocol": "torznab", \
+			"name": "Jackett", \
+			"implementation": "Torznab", \
+			"configContract": "TorznabSettings", \
+			"tags": [], \
+			"fields": [ \
+				{ "name": "url", "value": "http://jackett:9117/api/v2.0/indexers/all/results/torznab" }, \
+				{ "name": "apiKey", "value": "$(JACKETT_API_KEY)" }, \
+				{ "name": "categories", "value": [2000, 2010, 2040] } \
+			] \
+		}' \
+	| jq -r '.message // .error // "Indexer configured"'
+
 check-radarr-config:
 	@echo "Remote Path Mappings:"
 	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/remotepathmapping | jq
