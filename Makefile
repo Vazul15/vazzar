@@ -1,12 +1,16 @@
 NETWORK_NAME := vazzar-app-network
 USER_ID := $(shell id -u)
 GROUP_ID := $(shell id -g)
+RADARR_API_KEY = $(shell cat radarr-api-key.txt)
+QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
 
-start: create-volumes create-network start-torrent start-radarr start-jackett set-credentials start-radarr-backend
+start: create-volumes create-network start-torrent start-radarr start-jackett set-credentials configure-radarr start-radarr-backend
 
 clean:
-	- podman stop radarr qbittorrent radarr-backend || true
-	- podman rm -f radarr qbittorrent radarr-backend || true
+	- podman stop radarr qbittorrent radarr-backend jackett || true
+	- podman rm -f radarr qbittorrent radarr-backend jackett || true
+	- podman volume rm qbittorrent-config downloads radarr-config jackett-config movies || true
+	- podman network rm $(NETWORK_NAME) || true
 
 create-volumes:
 	- podman volume create qbittorrent-config 
@@ -21,7 +25,6 @@ create-network:
 start-torrent:
 	podman run -d --replace --name=qbittorrent \
 		--network $(NETWORK_NAME) \
-		--user $(USER_ID):$(GROUP_ID) \
 		-p 8081:8081 \
 		-e PUID=1000 \
 		-e PGID=1000 \
@@ -35,7 +38,6 @@ start-torrent:
 start-radarr:
 	podman run -d --replace --name=radarr \
 		--network $(NETWORK_NAME) \
-		--user $(USER_ID):$(GROUP_ID) \
 		-p 7878:7878 \
 		-v radarr-config:/config \
 		-v downloads:/downloads:rw \
@@ -75,8 +77,40 @@ start-radarr-backend: build-radarr-backend
 build-radarr-backend:
 	podman build -t radarr-backend:latest ./radarr-backend/
 
+
+configure-radarr:
+	@echo "Configuring Radarr Remote Path Mapping..."
+	@curl -s -X POST http://localhost:7878/api/v3/remotepathmapping \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{ "host": "localhost", "remotePath": "/downloads", "localPath": "/downloads" }' \
+	| jq -r '.message // .error // "Remote Path Mapping done"'
+
+	@echo "Configuring Radarr Root Folder..."
+	@curl -s -X POST http://localhost:7878/api/v3/rootfolder \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{"path": "/movies"}' \
+	| jq -r 'if type=="array" then "Root folder(s) present or added" else .message // .error // "Root folder added" end'
+
+	@echo "Configuring Radarr Download Client (qBittorrent)..."
+	@curl -s -X POST http://localhost:7878/api/v3/downloadclient \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{"enable":true,"priority":1,"name":"qBittorrent","protocol":"torrent","implementation":"qBittorrent","configContract":"qBittorrentSettings","fields":[{"name":"host","value":"qbittorrent"},{"name":"port","value":8081},{"name":"username","value":"admin"},{"name":"password","value":"$(QBITTORRENT_PASSWORD)"},{"name":"category","value":"radarr"}]}' \
+	| jq -r 'if type=="array" then "Download client(s) present or updated" else .message // .error // "Download client configured" end'
+
+check-radarr-config:
+	@echo "Remote Path Mappings:"
+	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/remotepathmapping | jq
+	@echo "\nRoot Folders:"
+	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/rootfolder | jq
+	@echo "\nDownload Clients:"
+	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/downloadclient | jq
+
 set-credentials:
 	@echo "Fetching qBittorrent temporary password..."
+	@sleep 2
 	@podman logs qbittorrent 2>&1 | grep 'temporary password is provided for this session:' | sed -E 's/.*session: (.*)/\1/' | tee qbittorrent-password.txt
 
 	@echo "Fetching Radarr API Key..."
