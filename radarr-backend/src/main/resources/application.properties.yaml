@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: radarr-backend
+
+radarr:
+  api:
+    key: ${X_API_KEY}
+    host: ${RADARR_HOST}
+    port: ${RADARR_PORT}

@@ -2,7 +2,7 @@ NETWORK_NAME := vazzar-app-network
 USER_ID := $(shell id -u)
 GROUP_ID := $(shell id -g)
 
-start: create-volumes create-network start-torrent start-radarr set-credentials
+start: create-volumes create-network start-torrent start-radarr set-credentials start-radarr-backend
 
 clean:
 	- podman stop radarr qbittorrent || true
@@ -43,6 +43,22 @@ start-radarr:
 		-e PGID=1000 \
 		-e TZ=UTC \
 		docker.io/linuxserver/radarr:latest
+
+start-radarr-backend: build-radarr-backend
+	podman run -d --replace --name=radarr-backend \
+		--network $(NETWORK_NAME) \
+		-p 8080:8080 \
+		-e X_API_KEY=$$(cat radarr-api-key.txt) \
+		-e QBITTORRENT_PASSWORD=$$(cat qbittorrent-password.txt) \
+		-e QBITTORRENT_USERNAME=admin \
+		-e RADARR_HOST=radarr \
+		-e RADARR_PORT=7878 \
+		-e QBITTORRENT_HOST=qbittorrent \
+		-e QBITTORRENT_PORT=8081 \
+		localhost/radarr-backend:latest
+
+build-radarr-backend:
+	podman build -t radarr-backend:latest ./radarr-backend/
 
 set-credentials:
 	@echo "Fetching qBittorrent temporary password..."
