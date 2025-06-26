@@ -1,9 +1,20 @@
 spring:
   application:
     name: radarr-backend
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
 radarr:
   api:
     key: ${X_API_KEY}
     host: ${RADARR_HOST}
     port: ${RADARR_PORT}
+
+qbittorrent:
+  api:
+    user: ${QBITTORRENT_USERNAME}
+    password: ${QBITTORRENT_PASSWORD}
+    host: ${QBITTORRENT_HOST}
+    port: ${QBITTORRENT_PORT}
