@@ -7,11 +7,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/indexer")
+@RequestMapping("/api/indexer")
 public class IndexerController {
 
-    @PostMapping("/add-indexer")
-    public String addIndexer(@RequestBody String indexer) {
+//    @PostMapping("/add-indexer")
+//    public String addIndexer(@RequestBody String indexer) {
+//
+//    }
 
-    }
 }
