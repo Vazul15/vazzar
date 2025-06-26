@@ -6,9 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
-
 @Configuration
-public class WebClientConfig {
+public class RadarrClientConfig {
 
     @Value("${radarr.api.key}")
     private String radarrApiKey;
@@ -19,18 +18,17 @@ public class WebClientConfig {
     @Value("${radarr.api.port}")
     private int radarrApiPort;
 
-
     @Bean
     public WebClient radarrClient() {
         String baseUrl = String.format("http://%s:%d/api/v3/", radarrApiHost, radarrApiPort);
 
         return WebClient.builder()
                 .baseUrl(baseUrl)
-                .defaultHeaders(headers -> {
-                    headers.setContentType(MediaType.APPLICATION_JSON);
-                    headers.set("X-Api-Key", radarrApiKey);
-                })
+                .defaultHeaders(
+                        headers -> {
+                            headers.setContentType(MediaType.APPLICATION_JSON);
+                            headers.set("X-Api-Key", radarrApiKey);
+                        })
                 .build();
     }
-
 }
