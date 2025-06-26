@@ -18,3 +18,9 @@ qbittorrent:
     password: ${QBITTORRENT_PASSWORD}
     host: ${QBITTORRENT_HOST}
     port: ${QBITTORRENT_PORT}
+
+jackett:
+  api:
+    key: ${JACKETT_API_KEY}
+    host: ${JACKETT_HOST}
+    port: ${JACKETT_PORT}
