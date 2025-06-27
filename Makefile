@@ -4,13 +4,13 @@ GROUP_ID := $(shell id -g)
 RADARR_API_KEY = $(shell cat radarr-api-key.txt)
 QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
 
-start: create-volumes create-network start-torrent start-radarr start-jackett set-credentials configure-radarr start-radarr-backend
+start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials configure-radarr start-radarr-backend
 
 clean:
 	- podman stop radarr qbittorrent radarr-backend jackett || true
 	- podman rm -f radarr qbittorrent radarr-backend jackett || true
 	- podman volume rm qbittorrent-config downloads radarr-config jackett-config movies || true
-	- podman network rm $(NETWORK_NAME) || true
+	- podman network rm -f $(NETWORK_NAME) || true
 
 create-volumes:
 	- podman volume create qbittorrent-config 
@@ -25,27 +25,29 @@ create-network:
 start-torrent:
 	podman run -d --replace --name=qbittorrent \
 		--network $(NETWORK_NAME) \
-		-p 8081:8081 \
-		-e PUID=1000 \
-		-e PGID=1000 \
-		-e TZ=Etc/UTC \
-		-e WEBUI_PORT=8081 \
-		-e TORRENTING_PORT=6681 \
-		-v qbittorrent-config:/config:rw \
-		-v downloads:/downloads \
-		docker.io/linuxserver/qbittorrent:latest
-
-start-radarr:
-	podman run -d --replace --name=radarr \
-		--network $(NETWORK_NAME) \
-		-p 7878:7878 \
-		-v radarr-config:/config \
-		-v downloads:/downloads:rw \
-		-v movies:/movies:rw \
+		--privileged \
+		-p 8081:8081 -p 6881:6881 \
 		-e PUID=1000 \
 		-e PGID=1000 \
 		-e TZ=UTC \
+		-e WEBUI_PORT=8081 \
+		-e TORRENTING_PORT=6881 \
+		-v qbittorrent-config:/config:rw \
+		-v $(PWD)/downloads:/downloads:rw \
+		docker.io/linuxserver/qbittorrent:latest
+
+start-radarr:
+	- podman run -d --replace --name=radarr \
+		--network $(NETWORK_NAME) \
+		-p 7878:7878 \
+		-v radarr-config:/config:rw \
+		-v $(PWD)/downloads:/downloads:rw \
+		-v $(PWD)/movies:/movies:rw \
+		-e PUID=$(USER_ID) \
+		-e PGID=$(GROUP_ID) \
+		-e TZ=UTC \
 		docker.io/linuxserver/radarr:latest
+	- podman exec -it radarr chown abc /movies
 
 start-jackett:
 	podman run -d --replace --name=jackett \
@@ -55,7 +57,7 @@ start-jackett:
 		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
 		-v jackett-config:/config:rw \
-		-v downloads:/downloads \
+		-v $(PWD)/downloads:/downloads \
 		docker.io/linuxserver/jackett:latest
 
 start-radarr-backend: build-radarr-backend
@@ -129,6 +131,9 @@ check-radarr-config:
 	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/rootfolder | jq
 	@echo "\nDownload Clients:"
 	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/downloadclient | jq
+	@echo "\nIndexer:"
+	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/indexer | jq
+	
 
 set-credentials:
 	@echo "Fetching qBittorrent temporary password..."
