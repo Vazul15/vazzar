@@ -133,7 +133,7 @@ configure-radarr-jackett:
 	@curl -s -X POST http://localhost:7878/api/v3/indexer \
 		-H "X-Api-Key: $(RADARR_API_KEY)" \
 		-H "Content-Type: application/json" \
-		-d '{"enableRss":true,"enableAutomaticSearch":true,"enableInteractiveSearch":true,"priority":10,"name":"ThePirateBay","fields":[{"name":"baseUrl","value":"http://jackett:9117/api/v2.0/indexers/thepiratebay/results/torznab/"},{"name":"apiKey","value":"$(JACKETT_API_KEY)"},{"name":"categories","value":[2000,2020,2040]}],"implementation": "Torznab","configContract":"TorznabSettings","tags":[]}' \
+		-d '{"enableRss":true,"enableAutomaticSearch":true,"enableInteractiveSearch":true,"priority":10,"name":"ThePirateBay","fields":[{"name":"baseUrl","value":"http://jackett:9117/api/v2.0/indexers/thepiratebay/results/torznab/"},{"name":"apiKey","value":"$(JACKETT_API_KEY)"},{"name":"categories","value":[2000,5000]}],"implementation": "Torznab","configContract":"TorznabSettings","tags":[]}' \
 	| jq
 	@echo "Configuring Radarr Second try (Jackett)..."
 	@sleep 2
