@@ -37,7 +37,7 @@ start-torrent:
 		docker.io/linuxserver/qbittorrent:latest
 
 start-radarr:
-	podman run -d --replace --name=radarr \
+	- podman run -d --replace --name=radarr \
 		--network $(NETWORK_NAME) \
 		-p 7878:7878 \
 		-v radarr-config:/config:rw \
@@ -47,6 +47,7 @@ start-radarr:
 		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
 		docker.io/linuxserver/radarr:latest
+	- podman exec -it radarr chown abc /movies
 
 start-jackett:
 	podman run -d --replace --name=jackett \
