@@ -5,7 +5,10 @@ RADARR_API_KEY = $(shell cat radarr-api-key.txt)
 QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
 JACKETT_API_KEY = $(shell cat jackett-api-key.txt)
 
-start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials configure-radarr start-radarr-backend
+start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  start-radarr-backend configure-radarr
+
+stop:
+	- podman stop radarr qbittorrent radarr-backend jackett || true
 
 clean:
 	- podman stop radarr qbittorrent radarr-backend jackett || true
@@ -25,24 +28,23 @@ create-network:
 start-torrent:
 	podman run -d --replace --name=qbittorrent \
 		--network $(NETWORK_NAME) \
-		--privileged \
 		-p 8081:8081 -p 6881:6881 \
-		-e PUID=1000 \
-		-e PGID=1000 \
+		-e PUID=$(USER_ID) \
+		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
 		-e WEBUI_PORT=8081 \
 		-e TORRENTING_PORT=6881 \
-		-v qbittorrent-config:/config:rw \
-		-v $(PWD)/downloads:/downloads:rw \
+		-v qbittorrent-config:/config:Z \
+		-v $(PWD)/downloads:/downloads:Z \
 		docker.io/linuxserver/qbittorrent:latest
 
 start-radarr:
 	podman run -d --replace --name=radarr \
 		--network $(NETWORK_NAME) \
 		-p 7878:7878 \
-		-v radarr-config:/config:rw \
-		-v $(PWD)/downloads:/downloads:rw \
-		-v $(PWD)/movies:/movies:rw \
+		-v radarr-config:/config:Z \
+		-v $(PWD)/downloads:/downloads:Z \
+		-v $(PWD)/movies:/movies:Z \
 		-e PUID=$(USER_ID) \
 		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
@@ -55,8 +57,8 @@ start-jackett:
 		-e PUID=$(USER_ID) \
 		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
-		-v jackett-config:/config:rw \
-		-v $(PWD)/config/Jackett/Indexers/thepiratebay.json:/config/Jackett/Indexers/thepiratebay.json \
+		-v jackett-config:/config:Z \
+		-v $(PWD)/config/Jackett/Indexers/thepiratebay.json:/config/Jackett/Indexers/thepiratebay.json:Z \
 		-v $(PWD)/downloads:/downloads \
 		docker.io/linuxserver/jackett:latest
 
@@ -100,6 +102,7 @@ configure-radarr: configure-radarr-mapping configure-radarr-root configure-radar
 	
 configure-radarr-mapping:
 	@echo "Configuring Radarr Remote Path Mapping..."
+	@sleep 2
 	@curl -s -X POST http://localhost:7878/api/v3/remotepathmapping \
 		-H "X-Api-Key: $(RADARR_API_KEY)" \
 		-H "Content-Type: application/json" \
@@ -108,7 +111,7 @@ configure-radarr-mapping:
 
 configure-radarr-root:
 	@echo "Configuring Radarr Root Folder..."
-	@podman exec -it radarr chown abc /movies
+	@sleep 2
 	@curl -s -X POST http://localhost:7878/api/v3/rootfolder \
 		-H "X-Api-Key: $(RADARR_API_KEY)" \
 		-H "Content-Type: application/json" \
@@ -117,6 +120,7 @@ configure-radarr-root:
 
 configure-radarr-downloadclient:
 	@echo "Configuring Radarr Download Client (qBittorrent)..."
+	@sleep 2
 	@curl -s -X POST http://localhost:7878/api/v3/downloadclient \
 		-H "X-Api-Key: $(RADARR_API_KEY)" \
 		-H "Content-Type: application/json" \
@@ -125,9 +129,18 @@ configure-radarr-downloadclient:
 
 configure-radarr-jackett:
 	@echo "Configuring Radarr Indexers (Jackett)..."
+	@sleep 2
 	@curl -s -X POST http://localhost:7878/api/v3/indexer \
 		-H "X-Api-Key: $(RADARR_API_KEY)" \
 		-H "Content-Type: application/json" \
 		-d '{"enableRss":true,"enableAutomaticSearch":true,"enableInteractiveSearch":true,"priority":10,"name":"ThePirateBay","fields":[{"name":"baseUrl","value":"http://jackett:9117/api/v2.0/indexers/thepiratebay/results/torznab/"},{"name":"apiKey","value":"$(JACKETT_API_KEY)"},{"name":"categories","value":[2000,2020,2040]}],"implementation": "Torznab","configContract":"TorznabSettings","tags":[]}' \
 	| jq
+	@echo "Configuring Radarr Second try (Jackett)..."
+	@sleep 2
+	@curl -s -X POST http://localhost:7878/api/v3/indexer \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{"enableRss":true,"enableAutomaticSearch":true,"enableInteractiveSearch":true,"priority":10,"name":"ThePirateBay","fields":[{"name":"baseUrl","value":"http://jackett:9117/api/v2.0/indexers/thepiratebay/results/torznab/"},{"name":"apiKey","value":"$(JACKETT_API_KEY)"},{"name":"categories","value":[2000,2020,2040]}],"implementation": "Torznab","configContract":"TorznabSettings","tags":[]}' \
+	| jq
+
 
