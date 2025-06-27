@@ -4,20 +4,18 @@ GROUP_ID := $(shell id -g)
 RADARR_API_KEY = $(shell cat radarr-api-key.txt)
 QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
 
-start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials configure-radarr start-radarr-backend
-
+start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials 
 clean:
 	- podman stop radarr qbittorrent radarr-backend jackett || true
 	- podman rm -f radarr qbittorrent radarr-backend jackett || true
-	- podman volume rm qbittorrent-config downloads radarr-config jackett-config movies || true
+	- podman volume rm qbittorrent-config radarr-config jackett-config || true
 	- podman network rm -f $(NETWORK_NAME) || true
 
 create-volumes:
 	- podman volume create qbittorrent-config 
-	- podman volume create downloads
 	- podman volume create radarr-config
 	- podman volume create jackett-config
-	- podman volume create movies
+	- mkdir downloads movies
 
 create-network:
 	- podman network create $(NETWORK_NAME)
@@ -37,7 +35,7 @@ start-torrent:
 		docker.io/linuxserver/qbittorrent:latest
 
 start-radarr:
-	- podman run -d --replace --name=radarr \
+	podman run -d --replace --name=radarr \
 		--network $(NETWORK_NAME) \
 		-p 7878:7878 \
 		-v radarr-config:/config:rw \
@@ -47,7 +45,6 @@ start-radarr:
 		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
 		docker.io/linuxserver/radarr:latest
-	- podman exec -it radarr chown abc /movies
 
 start-jackett:
 	podman run -d --replace --name=jackett \
@@ -79,51 +76,6 @@ start-radarr-backend: build-radarr-backend
 build-radarr-backend:
 	podman build -t radarr-backend:latest ./radarr-backend/
 
-
-configure-radarr:
-	@echo "Configuring Radarr Remote Path Mapping..."
-	@curl -s -X POST http://localhost:7878/api/v3/remotepathmapping \
-		-H "X-Api-Key: $(RADARR_API_KEY)" \
-		-H "Content-Type: application/json" \
-		-d '{ "host": "localhost", "remotePath": "/downloads", "localPath": "/downloads" }' \
-	| jq -r '.message // .error // "Remote Path Mapping done"'
-
-	@echo "Configuring Radarr Root Folder..."
-	@curl -s -X POST http://localhost:7878/api/v3/rootfolder \
-		-H "X-Api-Key: $(RADARR_API_KEY)" \
-		-H "Content-Type: application/json" \
-		-d '{"path": "/movies"}' \
-	| jq -r 'if type=="array" then "Root folder(s) present or added" else .message // .error // "Root folder added" end'
-
-	@echo "Configuring Radarr Download Client (qBittorrent)..."
-	@curl -s -X POST http://localhost:7878/api/v3/downloadclient \
-		-H "X-Api-Key: $(RADARR_API_KEY)" \
-		-H "Content-Type: application/json" \
-		-d '{"enable":true,"priority":1,"name":"qBittorrent","protocol":"torrent","implementation":"qBittorrent","configContract":"qBittorrentSettings","fields":[{"name":"host","value":"qbittorrent"},{"name":"port","value":8081},{"name":"username","value":"admin"},{"name":"password","value":"$(QBITTORRENT_PASSWORD)"},{"name":"category","value":"radarr"}]}' \
-	| jq -r 'if type=="array" then "Download client(s) present or updated" else .message // .error // "Download client configured" end'
-
-	@echo "Configuring Radarr Indexer (Jackett)..."
-	@curl -s -X POST http://localhost:7878/api/v3/indexer \
-		-H "X-Api-Key: $(RADARR_API_KEY)" \
-		-H "Content-Type: application/json" \
-		-d '{ \
-			"enableRss": true, \
-			"enableAutomaticSearch": true, \
-			"enableInteractiveSearch": true, \
-			"priority": 25, \
-			"protocol": "torznab", \
-			"name": "Jackett", \
-			"implementation": "Torznab", \
-			"configContract": "TorznabSettings", \
-			"tags": [], \
-			"fields": [ \
-				{ "name": "url", "value": "http://jackett:9117/api/v2.0/indexers/all/results/torznab" }, \
-				{ "name": "apiKey", "value": "$(JACKETT_API_KEY)" }, \
-				{ "name": "categories", "value": [2000, 2010, 2040] } \
-			] \
-		}' \
-	| jq -r '.message // .error // "Indexer configured"'
-
 check-radarr-config:
 	@echo "Remote Path Mappings:"
 	@curl -s -H "X-Api-Key: $(RADARR_API_KEY)" http://localhost:7878/api/v3/remotepathmapping | jq
@@ -151,4 +103,52 @@ set-credentials:
 	@podman exec -it jackett cat /config/Jackett/ServerConfig.json \
 		| grep -Po '"APIKey"\s*:\s*"\K[^"]+' \
 		| tee jackett-api-key.txt
+configure-radarr: configure-radarr-mapping configure-radarr-root configure-radarr-downloadclient
+	
+configure-radarr-mapping:
+	@echo "Configuring Radarr Remote Path Mapping..."
+	@curl -s -X POST http://localhost:7878/api/v3/remotepathmapping \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{ "host": "localhost", "remotePath": "/downloads", "localPath": "/downloads" }' \
+	| jq -r '.message // .error // "Remote Path Mapping done"'
 
+configure-radarr-root:
+	@echo "Configuring Radarr Root Folder..."
+	@podman exec -it radarr chown abc /movies
+	@curl -s -X POST http://localhost:7878/api/v3/rootfolder \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{"path": "/movies"}' \
+	| jq 
+
+configure-radarr-downloadclient:
+	@echo "Configuring Radarr Download Client (qBittorrent)..."
+	@curl -s -X POST http://localhost:7878/api/v3/downloadclient \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{"enable":true,"priority":1,"name":"qBittorrent","protocol":"torrent","implementation":"qBittorrent","configContract":"qBittorrentSettings","fields":[{"name":"host","value":"qbittorrent"},{"name":"port","value":8081},{"name":"username","value":"admin"},{"name":"password","value":"$(QBITTORRENT_PASSWORD)"},{"name":"category","value":"radarr"}]}' \
+	| jq -r 'if type=="array" then "Download client(s) present or updated" else .message // .error // "Download client configured" end'
+
+configure-radarr-jackett:
+	# @echo "Configuring Radarr Indexer (Jackett)..."
+	# @curl -s -X POST http://localhost:7878/api/v3/indexer \
+	# 	-H "X-Api-Key: $(RADARR_API_KEY)" \
+	# 	-H "Content-Type: application/json" \
+	# 	-d '{ \
+	# 		"enableRss": true, \
+	# 		"enableAutomaticSearch": true, \
+	# 		"enableInteractiveSearch": true, \
+	# 		"priority": 25, \
+	# 		"protocol": "torznab", \
+	# 		"name": "Jackett", \
+	# 		"implementation": "Torznab", \
+	# 		"configContract": "TorznabSettings", \
+	# 		"tags": [], \
+	# 		"fields": [ \
+	# 			{ "name": "url", "value": "http://jackett:9117/api/v2.0/indexers/all/results/torznab" }, \
+	# 			{ "name": "apiKey", "value": "$(JACKETT_API_KEY)" }, \
+	# 			{ "name": "categories", "value": [2000, 2010, 2040] } \
+	# 		] \
+	# 	}' \
+	# | jq -r '.message // .error // "Indexer configured"'
