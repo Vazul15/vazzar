@@ -1,5 +1,7 @@
 package com.vazzarmoviedb.radarrbackend.config;
 
+import com.vazzarmoviedb.radarrbackend.config.radarr.RadarrProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,27 +12,29 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
-    @Value("${radarr.api.key}")
-    private String radarrApiKey;
+    private final RadarrProperties radarr;
 
-    @Value("${radarr.api.host}")
-    private String radarrApiHost;
-
-    @Value("${radarr.api.port}")
-    private int radarrApiPort;
-
+    @Autowired
+    public WebClientConfig(RadarrProperties radarr) {
+        this.radarr = radarr;
+    }
 
     @Bean
     public WebClient radarrClient() {
-        String baseUrl = String.format("http://%s:%d/api/v3/", radarrApiHost, radarrApiPort);
+        String baseUrl = String.format("http://%s:%d/api/v3/", radarr.getHost(), radarr.getPort());
 
         return WebClient.builder()
                 .baseUrl(baseUrl)
                 .defaultHeaders(headers -> {
                     headers.setContentType(MediaType.APPLICATION_JSON);
-                    headers.set("X-Api-Key", radarrApiKey);
+                    headers.set("X-Api-Key", radarr.getApiKey());
                 })
                 .build();
+    }
+
+    @Bean
+    public String getRadarrRootFolder() {
+        return radarr.getRootFolder();
     }
 
 }

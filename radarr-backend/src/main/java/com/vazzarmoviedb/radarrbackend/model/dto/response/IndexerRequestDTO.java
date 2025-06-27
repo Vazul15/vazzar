@@ -1,10 +1,10 @@
-package com.vazzarmoviedb.radarrbackend.model.dto.request;
+package com.vazzarmoviedb.radarrbackend.model.dto.response;
 
 import com.vazzarmoviedb.radarrbackend.model.dto.FieldsNameValueDTO;
 
 import java.util.List;
 
-public record TorznabRequestDTO(
+public record IndexerRequestDTO(
         String name,
         String implementation,
         String configContract,
@@ -13,6 +13,9 @@ public record TorznabRequestDTO(
         boolean supportsRecent,
         int priority,
         String protocol,
+        boolean enableRss,
+        boolean enableAutomaticSearch,
+        boolean enableInteractiveSearch,
         List<FieldsNameValueDTO> fields
 ) {}
 

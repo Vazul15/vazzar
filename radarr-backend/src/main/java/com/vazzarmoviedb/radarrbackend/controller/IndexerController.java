@@ -1,6 +1,6 @@
 package com.vazzarmoviedb.radarrbackend.controller;
 
-import com.vazzarmoviedb.radarrbackend.model.dto.request.IndexerNameJackettApiKeyTorzNabUrlDTO;
+import com.vazzarmoviedb.radarrbackend.model.dto.request.indexer.IndexerNameJackettApiKeyTorzNabUrlDTO;
 import com.vazzarmoviedb.radarrbackend.service.IndexerConfService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
