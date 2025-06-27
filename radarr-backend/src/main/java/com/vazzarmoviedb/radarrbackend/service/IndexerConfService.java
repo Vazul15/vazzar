@@ -1,8 +1,8 @@
 package com.vazzarmoviedb.radarrbackend.service;
 
 import com.vazzarmoviedb.radarrbackend.model.dto.FieldsNameValueDTO;
-import com.vazzarmoviedb.radarrbackend.model.dto.request.IndexerNameJackettApiKeyTorzNabUrlDTO;
-import com.vazzarmoviedb.radarrbackend.model.dto.request.TorznabRequestDTO;
+import com.vazzarmoviedb.radarrbackend.model.dto.request.indexer.IndexerNameJackettApiKeyTorzNabUrlDTO;
+import com.vazzarmoviedb.radarrbackend.model.dto.response.IndexerRequestDTO;
 import com.vazzarmoviedb.radarrbackend.model.enums.MovieCategory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -19,20 +19,10 @@ public class IndexerConfService {
         this.radarrClient = radarrClient;
     }
 
-//    public Mono<List<IndexerDto>> getIndexers() {
-//        return radarrClient.get()
-//                .uri("indexer")
-//                .retrieve()
-//                .bodyToFlux(IndexerDto.class)
-//                .collectList();
-//    }
 
     public Mono<Void> addIndexer(IndexerNameJackettApiKeyTorzNabUrlDTO indexerRequestDTO) {
-        FieldsNameValueDTO baseUrl = new FieldsNameValueDTO("baseUrl", indexerRequestDTO.torznabUrl());
-        FieldsNameValueDTO apiKey = new FieldsNameValueDTO("apiKey", indexerRequestDTO.jackettApiKey());
-        FieldsNameValueDTO categories = new FieldsNameValueDTO("categories", MovieCategory.GENERAL.getCode());
 
-        TorznabRequestDTO newIndexer = new TorznabRequestDTO(
+        IndexerRequestDTO newIndexer = new IndexerRequestDTO(
                 indexerRequestDTO.name(),
                 "Torznab",
                 "TorznabSettings",
@@ -41,7 +31,15 @@ public class IndexerConfService {
                 true,
                 1,
                 "torrent",
-                List.of(baseUrl, apiKey, categories)
+                true,
+                true,
+                true,
+                List.of(
+                        new FieldsNameValueDTO("baseUrl", indexerRequestDTO.torznabUrl()),
+                        new FieldsNameValueDTO("apiPath", "/api"),
+                        new FieldsNameValueDTO("apiKey", indexerRequestDTO.jackettApiKey()),
+                        new FieldsNameValueDTO("categories", List.of(2000))
+                )
         );
 
         return radarrClient.post()
