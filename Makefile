@@ -5,7 +5,7 @@ RADARR_API_KEY = $(shell cat radarr-api-key.txt)
 QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
 JACKETT_API_KEY = $(shell cat jackett-api-key.txt)
 
-start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials 
+start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials configure-radarr start-radarr-backend
 
 clean:
 	- podman stop radarr qbittorrent radarr-backend jackett || true
@@ -64,16 +64,9 @@ start-radarr-backend: build-radarr-backend
 	podman run -d --replace --name=radarr-backend \
 		--network $(NETWORK_NAME) \
 		-p 8080:8080 \
-		-e X_API_KEY=$$(cat radarr-api-key.txt) \
-		-e QBITTORRENT_PASSWORD=$$(cat qbittorrent-password.txt) \
-		-e QBITTORRENT_USERNAME=admin \
+		-e X_API_KEY=$(RADARR_API_KEY) \
 		-e RADARR_HOST=radarr \
 		-e RADARR_PORT=7878 \
-		-e QBITTORRENT_HOST=qbittorrent \
-		-e QBITTORRENT_PORT=8081 \
-		-e JACKETT_API_KEY=$$(cat jackett-api-key.txt) \
-		-e JACKETT_HOST=jackett \
-		-e JACKETT_PORT=9117 \
 		localhost/radarr-backend:latest
 
 build-radarr-backend:
