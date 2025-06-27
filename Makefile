@@ -3,8 +3,10 @@ USER_ID := $(shell id -u)
 GROUP_ID := $(shell id -g)
 RADARR_API_KEY = $(shell cat radarr-api-key.txt)
 QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
+JACKETT_API_KEY = $(shell cat jackett-api-key.txt)
 
 start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials 
+
 clean:
 	- podman stop radarr qbittorrent radarr-backend jackett || true
 	- podman rm -f radarr qbittorrent radarr-backend jackett || true
@@ -54,6 +56,7 @@ start-jackett:
 		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
 		-v jackett-config:/config:rw \
+		-v $(PWD)/config/Jackett/Indexers/thepiratebay.json:/config/Jackett/Indexers/thepiratebay.json \
 		-v $(PWD)/downloads:/downloads \
 		docker.io/linuxserver/jackett:latest
 
@@ -89,21 +92,18 @@ check-radarr-config:
 
 set-credentials:
 	@echo "Fetching qBittorrent temporary password..."
-	@sleep 2
+	@sleep 3
 	@podman logs qbittorrent 2>&1 | grep 'temporary password is provided for this session:' | sed -E 's/.*session: (.*)/\1/' | tee qbittorrent-password.txt
-
 	@echo "Fetching Radarr API Key..."
 	@podman exec -it radarr grep ApiKey /config/config.xml | sed -E 's/.*<ApiKey>([^<]+)<\/ApiKey>.*/\1/' | tee radarr-api-key.txt
-
 	@echo "Triggering Jackett Web UI once to create config..."
 	@curl -s --max-time 5 http://localhost:9117/ > /dev/null || true
-	@sleep 1
-
 	@echo "Fetching Jackett API Key..."
 	@podman exec -it jackett cat /config/Jackett/ServerConfig.json \
 		| grep -Po '"APIKey"\s*:\s*"\K[^"]+' \
 		| tee jackett-api-key.txt
-configure-radarr: configure-radarr-mapping configure-radarr-root configure-radarr-downloadclient
+
+configure-radarr: configure-radarr-mapping configure-radarr-root configure-radarr-downloadclient configure-radarr-jackett
 	
 configure-radarr-mapping:
 	@echo "Configuring Radarr Remote Path Mapping..."
@@ -131,24 +131,10 @@ configure-radarr-downloadclient:
 	| jq -r 'if type=="array" then "Download client(s) present or updated" else .message // .error // "Download client configured" end'
 
 configure-radarr-jackett:
-	# @echo "Configuring Radarr Indexer (Jackett)..."
-	# @curl -s -X POST http://localhost:7878/api/v3/indexer \
-	# 	-H "X-Api-Key: $(RADARR_API_KEY)" \
-	# 	-H "Content-Type: application/json" \
-	# 	-d '{ \
-	# 		"enableRss": true, \
-	# 		"enableAutomaticSearch": true, \
-	# 		"enableInteractiveSearch": true, \
-	# 		"priority": 25, \
-	# 		"protocol": "torznab", \
-	# 		"name": "Jackett", \
-	# 		"implementation": "Torznab", \
-	# 		"configContract": "TorznabSettings", \
-	# 		"tags": [], \
-	# 		"fields": [ \
-	# 			{ "name": "url", "value": "http://jackett:9117/api/v2.0/indexers/all/results/torznab" }, \
-	# 			{ "name": "apiKey", "value": "$(JACKETT_API_KEY)" }, \
-	# 			{ "name": "categories", "value": [2000, 2010, 2040] } \
-	# 		] \
-	# 	}' \
-	# | jq -r '.message // .error // "Indexer configured"'
+	@echo "Configuring Radarr Indexers (Jackett)..."
+	@curl -s -X POST http://localhost:7878/api/v3/indexer \
+		-H "X-Api-Key: $(RADARR_API_KEY)" \
+		-H "Content-Type: application/json" \
+		-d '{"enableRss":true,"enableAutomaticSearch":true,"enableInteractiveSearch":true,"priority":10,"name":"ThePirateBay","fields":[{"name":"baseUrl","value":"http://jackett:9117/api/v2.0/indexers/thepiratebay/results/torznab/"},{"name":"apiKey","value":"$(JACKETT_API_KEY)"},{"name":"categories","value":[2000,2020,2040]}],"implementation": "Torznab","configContract":"TorznabSettings","tags":[]}' \
+	| jq
+
