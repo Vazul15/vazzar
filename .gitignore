@@ -6,3 +6,4 @@ jackett-api-key.txt
 downloads
 movies
 **/**.bak
+config/Jackett/Indexers/*
