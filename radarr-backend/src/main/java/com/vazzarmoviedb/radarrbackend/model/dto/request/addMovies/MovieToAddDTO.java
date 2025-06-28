@@ -1,4 +1,4 @@
-package com.vazzarmoviedb.radarrbackend.model.dto.response;
+package com.vazzarmoviedb.radarrbackend.model.dto.request.addMovies;
 
 public record MovieToAddDTO(
         int tmdbId,
