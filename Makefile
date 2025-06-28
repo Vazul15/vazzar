@@ -4,8 +4,11 @@ GROUP_ID := $(shell id -g)
 RADARR_API_KEY = $(shell cat radarr-api-key.txt)
 QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
 JACKETT_API_KEY = $(shell cat jackett-api-key.txt)
+TMDB_API_KEY := your-api-key
 
-start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  configure-radarr start-radarr-backend 
+-include .env
+
+start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  configure-radarr start-tmdb-backend start-radarr-backend 
 stop:
 	- podman stop radarr qbittorrent radarr-backend jackett || true
 
@@ -60,6 +63,16 @@ start-jackett:
 		-v $(PWD)/config/Jackett/Indexers:/config/Jackett/Indexers:Z \
 		-v $(PWD)/downloads:/downloads \
 		docker.io/linuxserver/jackett:latest
+
+start-tmdb-backend: build-tmdb-backend
+	podman run -d --replace --name tmdb-backend \
+		--network $(NETWORK_NAME) \
+		-p 8090:8080 \
+		-e TMDB_API_KEY=$(TMDB_API_KEY) \
+		localhost/tmdb-backend:latest
+	
+build-tmdb-backend:
+	podman build -t tmdb-backend:latest ./tmdb-backend/
 
 start-radarr-backend: build-radarr-backend
 	podman run -d --replace --name=radarr-backend \
