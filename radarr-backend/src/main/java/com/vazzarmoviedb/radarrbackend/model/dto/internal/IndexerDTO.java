@@ -1,10 +1,8 @@
-package com.vazzarmoviedb.radarrbackend.model.dto.response;
-
-import com.vazzarmoviedb.radarrbackend.model.dto.FieldsNameValueDTO;
+package com.vazzarmoviedb.radarrbackend.model.dto.internal;
 
 import java.util.List;
 
-public record IndexerRequestDTO(
+public record IndexerDTO(
         String name,
         String implementation,
         String configContract,
@@ -16,9 +14,8 @@ public record IndexerRequestDTO(
         boolean enableRss,
         boolean enableAutomaticSearch,
         boolean enableInteractiveSearch,
-        List<FieldsNameValueDTO> fields
-) {}
-
-
+        List<IndexerFieldsNameValueDTO> fields
+) {
+}
 
 

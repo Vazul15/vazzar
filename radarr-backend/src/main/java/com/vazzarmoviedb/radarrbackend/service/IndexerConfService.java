@@ -1,9 +1,8 @@
 package com.vazzarmoviedb.radarrbackend.service;
 
-import com.vazzarmoviedb.radarrbackend.model.dto.FieldsNameValueDTO;
-import com.vazzarmoviedb.radarrbackend.model.dto.request.indexer.IndexerNameJackettApiKeyTorzNabUrlDTO;
-import com.vazzarmoviedb.radarrbackend.model.dto.response.IndexerRequestDTO;
-import com.vazzarmoviedb.radarrbackend.model.enums.MovieCategory;
+import com.vazzarmoviedb.radarrbackend.model.dto.internal.IndexerFieldsNameValueDTO;
+import com.vazzarmoviedb.radarrbackend.model.dto.request.IndexerNameJackettApiKeyTorzNabUrlDTO;
+import com.vazzarmoviedb.radarrbackend.model.dto.internal.IndexerDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -22,7 +21,7 @@ public class IndexerConfService {
 
     public Mono<Void> addIndexer(IndexerNameJackettApiKeyTorzNabUrlDTO indexerRequestDTO) {
 
-        IndexerRequestDTO newIndexer = new IndexerRequestDTO(
+        IndexerDTO newIndexer = new IndexerDTO(
                 indexerRequestDTO.name(),
                 "Torznab",
                 "TorznabSettings",
@@ -35,10 +34,10 @@ public class IndexerConfService {
                 true,
                 true,
                 List.of(
-                        new FieldsNameValueDTO("baseUrl", indexerRequestDTO.torznabUrl()),
-                        new FieldsNameValueDTO("apiPath", "/api"),
-                        new FieldsNameValueDTO("apiKey", indexerRequestDTO.jackettApiKey()),
-                        new FieldsNameValueDTO("categories", List.of(2000))
+                        new IndexerFieldsNameValueDTO("baseUrl", indexerRequestDTO.torznabUrl()),
+                        new IndexerFieldsNameValueDTO("apiPath", "/api"),
+                        new IndexerFieldsNameValueDTO("apiKey", indexerRequestDTO.jackettApiKey()),
+                        new IndexerFieldsNameValueDTO("categories", List.of(2000))
                 )
         );
 
