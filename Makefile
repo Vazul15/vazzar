@@ -5,8 +5,7 @@ RADARR_API_KEY = $(shell cat radarr-api-key.txt)
 QBITTORRENT_PASSWORD = $(shell cat qbittorrent-password.txt)
 JACKETT_API_KEY = $(shell cat jackett-api-key.txt)
 
-start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  start-radarr-backend configure-radarr
-
+start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  configure-radarr start-radarr-backend 
 stop:
 	- podman stop radarr qbittorrent radarr-backend jackett || true
 
