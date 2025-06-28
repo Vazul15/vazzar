@@ -5,3 +5,4 @@ qbittorrent-password.txt
 jackett-api-key.txt
 downloads
 movies
+**/**.bak
