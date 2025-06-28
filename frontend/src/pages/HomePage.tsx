@@ -1,9 +1,9 @@
-import { HomePageBody } from "@/components/HomePageBody";
+import { HomePageBody } from '@/components/HomePageBody';
 
 export function HomePage() {
-  return (
-    <>
-      <HomePageBody />
-    </>
-  );
+    return (
+        <>
+            <HomePageBody />
+        </>
+    );
 }

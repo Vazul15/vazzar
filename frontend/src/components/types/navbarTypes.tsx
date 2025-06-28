@@ -1,12 +1,12 @@
-import { LucideIcon } from "lucide-react";
+import { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
-  name: string;
-  url: string;
-  icon: LucideIcon;
+    name: string;
+    url: string;
+    icon: LucideIcon;
 }
 
 export interface NavBarProps {
-  items: NavItem[];
-  className?: string;
+    items: NavItem[];
+    className?: string;
 }
