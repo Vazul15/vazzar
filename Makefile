@@ -8,7 +8,7 @@ TMDB_API_KEY := your-api-key
 
 -include .env
 
-start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  configure-radarr start-tmdb-backend start-radarr-backend 
+start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  configure-radarr start-tmdb-backend start-radarr-backend start-frontend
 
 stop: stop-radarr-backend stop-tmdb-backend stop-frontend
 	- podman stop radarr qbittorrent jackett || true
