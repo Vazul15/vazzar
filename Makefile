@@ -9,12 +9,14 @@ TMDB_API_KEY := your-api-key
 -include .env
 
 start: create-volumes create-network start-torrent start-jackett start-radarr set-credentials  configure-radarr start-tmdb-backend start-radarr-backend 
-stop:
-	- podman stop radarr qbittorrent radarr-backend jackett || true
 
-clean:
-	- podman stop radarr qbittorrent radarr-backend jackett || true
-	- podman rm -f radarr qbittorrent radarr-backend jackett || true
+stop: stop-radarr-backend stop-tmdb-backend stop-frontend
+	- podman stop radarr qbittorrent jackett || true
+
+remove: stop remove-radarr-backend remove-tmdb-backend remove-frontend
+	- podman rm -f radarr qbittorrent jackett || true
+
+clean: remove
 	- podman volume rm qbittorrent-config radarr-config jackett-config || true
 	- podman network rm -f $(NETWORK_NAME) || true
 
@@ -64,6 +66,25 @@ start-jackett:
 		-v $(PWD)/downloads:/downloads \
 		docker.io/linuxserver/jackett:latest
 
+start-frontend: build-frontend
+	@echo "Starting Vazzar frontend..."
+	- podman run -d --replace --name vazzar-frontend \
+		--network $(NETWORK_NAME) \
+		-p 8000:8000 \
+		localhost/vazzar-frontend:latest
+
+build-frontend: 
+	@echo "Building Vazzar frontend..."
+	- podman build -t vazzar-frontend ./frontend/
+
+stop-frontend: 
+	@echo "Stopping Vazzar frontend"
+	- podman stop vazzar-frontend
+
+remove-frontend: stop-frontend
+	@echo "Removing Vazzar frontend..."
+	- podman rm -f vazzar-frontend
+	
 start-tmdb-backend: build-tmdb-backend
 	podman run -d --replace --name tmdb-backend \
 		--network $(NETWORK_NAME) \
@@ -73,6 +94,15 @@ start-tmdb-backend: build-tmdb-backend
 	
 build-tmdb-backend:
 	podman build -t tmdb-backend:latest ./tmdb-backend/
+
+stop-tmdb-backend:
+	@echo "Stopping Tmdb backend..."
+	- podman stop tmdb-backend
+
+remove-tmdb-backend: stop-tmdb-backend
+	@echo "Removing TMDB backend..."
+	- podman rm -f tmdb-backend
+	
 
 start-radarr-backend: build-radarr-backend
 	podman run -d --replace --name=radarr-backend \
@@ -85,6 +115,13 @@ start-radarr-backend: build-radarr-backend
 
 build-radarr-backend:
 	podman build -t radarr-backend:latest ./radarr-backend/
+
+stop-radarr-backend:
+	@echo "Stopping radarr backend..."
+	- podman stop radarr-backend
+
+remove-radarr-backend: stop-radarr-backend
+	- podman rm -f radarr-backend
 
 check-radarr-config:
 	@echo "Remote Path Mappings:"
