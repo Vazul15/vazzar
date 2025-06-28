@@ -8,7 +8,7 @@ import {
 } from '@/components/types/providerGenreTypes';
 
 export async function getTopMoviesGeneral(): Promise<topMoviesGeneral> {
-    const response = await fetch(`/api/movies/top-movies`);
+    const response = await fetch(`/tmdb/api/movies/top-movies`);
 
     if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -20,7 +20,7 @@ export async function getTopMoviesGeneral(): Promise<topMoviesGeneral> {
 }
 
 export async function getPopularMoviesGeneral(): Promise<topMoviesGeneral> {
-    const response = await fetch(`/api/movies/popular`);
+    const response = await fetch(`/tmdb/api/movies/popular`);
 
     if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -33,7 +33,7 @@ export async function getStreamingProviderNames(
     watchRegion: string,
 ): Promise<providerType[]> {
     const response = await fetch(
-        `/api/movies/providers?watchRegion=${watchRegion}`,
+        `/tmdb/api/movies/providers?watchRegion=${watchRegion}`,
     );
 
     if (!response.ok) {
@@ -49,7 +49,7 @@ export async function getMoviesFromProviderById(
     watchRegion: string,
 ): Promise<topMoviesGeneral> {
     const response = await fetch(
-        `/api/movies/id?providerId=${providerId}&watchRegion=${watchRegion}`,
+        `/tmdb/api/movies/id?providerId=${providerId}&watchRegion=${watchRegion}`,
     );
 
     if (!response.ok) {
@@ -61,7 +61,7 @@ export async function getMoviesFromProviderById(
 }
 
 export async function getGenres(): Promise<genresType[]> {
-    const response = await fetch('/api/movies/genres');
+    const response = await fetch('/tmdb/api/movies/genres');
 
     if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -84,7 +84,7 @@ export async function getMoviesByGenre(
     }
 
     const response = await fetch(
-        `/api/movies/genre?watchRegion=${watchRegion}&genres=${convertedGenres}`,
+        `/tmdb/api/movies/genre?watchRegion=${watchRegion}&genres=${convertedGenres}`,
     );
 
     if (!response.ok) {
@@ -97,7 +97,7 @@ export async function getMoviesByGenre(
 }
 
 export async function getTrailerOfMovieByMovieId(movieId: number) {
-    const response = await fetch(`/api/movies/trailer?movieId=${movieId}`);
+    const response = await fetch(`/tmdb/api/movies/trailer?movieId=${movieId}`);
 
     if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -110,7 +110,7 @@ export async function getDetailsAndCreditsOfMovieByMovieId(
     movieId: number,
 ): Promise<movieDetailsAndCredits> {
     const response = await fetch(
-        `/api/movies/movie-details?movieId=${movieId}`,
+        `/tmdb/api/movies/movie-details?movieId=${movieId}`,
     );
 
     if (!response.ok) {
