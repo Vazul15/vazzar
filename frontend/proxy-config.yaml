@@ -1,0 +1,14 @@
+server:
+  host: "0.0.0.0"
+  listen_port: "8000"
+
+static:
+  dir: "./resources/static"
+
+resources:
+  - name: Radar proxy server
+    endpoint: /radar/api/
+    destination_url: "http://radarr-backend:8080/api"
+  - name: Tmdb proxy server
+    endpoint: /tmdb/api/
+    destination_url: "http://tmdb-backend:8080/api"
