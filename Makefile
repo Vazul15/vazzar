@@ -58,7 +58,7 @@ start-jackett:
 		-e PGID=$(GROUP_ID) \
 		-e TZ=UTC \
 		-v jackett-config:/config:Z \
-		-v $(PWD)/config/Jackett/Indexers/thepiratebay.json:/config/Jackett/Indexers/thepiratebay.json:Z \
+		-v $(PWD)/config/Jackett/Indexers:/config/Jackett/Indexers:Z \
 		-v $(PWD)/downloads:/downloads \
 		docker.io/linuxserver/jackett:latest
 
