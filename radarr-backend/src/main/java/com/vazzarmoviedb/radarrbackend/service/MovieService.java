@@ -2,6 +2,7 @@ package com.vazzarmoviedb.radarrbackend.service;
 
 import com.vazzarmoviedb.radarrbackend.config.radarr.RadarrProperties;
 import com.vazzarmoviedb.radarrbackend.model.dto.request.addMovies.AddMovieRequestDTO;
+import com.vazzarmoviedb.radarrbackend.model.dto.request.addMovies.AddOptionsDTO;
 import com.vazzarmoviedb.radarrbackend.model.dto.response.MovieToAddDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,17 +19,35 @@ public class MovieService {
     }
 
     public Mono<Void> addMovie(MovieToAddDTO movie) {
-        int qualityProfileId = 1;
 
-        AddMovieRequestDTO request = movie.toRadarrRequest(
-                radarrProperties.getRootFolder(),
-                qualityProfileId
-        );
+        AddMovieRequestDTO movieDetailsToRadarrDownload = convertToRadarrRequest(movie);
 
         return radarrClient.post()
                 .uri("movie")
-                .bodyValue(request)
+                .bodyValue(movieDetailsToRadarrDownload)
                 .retrieve()
                 .bodyToMono(Void.class);
     }
+
+
+    private AddMovieRequestDTO convertToRadarrRequest(MovieToAddDTO movieToAddDTO) {
+        AddOptionsDTO optionsDTO = new AddOptionsDTO(false);
+        String titleSlug = movieToAddDTO.title().toLowerCase().replaceAll("[^a-z0-9]+", "-") + "-" + movieToAddDTO.year();
+        String rootFolderPath = radarrProperties.getRootFolder();
+        String path = rootFolderPath + "/" + movieToAddDTO.title() + " (" + movieToAddDTO.year() + ")";
+        int qualityProfileId = 1;
+
+        return new AddMovieRequestDTO(
+                movieToAddDTO.tmdbId(),
+                movieToAddDTO.title(),
+                movieToAddDTO.year(),
+                qualityProfileId,
+                rootFolderPath,
+                true,
+                optionsDTO,
+                titleSlug,
+                path
+        );
+    }
+
 }
