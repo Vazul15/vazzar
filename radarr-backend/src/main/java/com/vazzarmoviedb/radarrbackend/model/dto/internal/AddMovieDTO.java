@@ -1,6 +1,8 @@
-package com.vazzarmoviedb.radarrbackend.model.dto.request.addMovies;
+package com.vazzarmoviedb.radarrbackend.model.dto.internal;
 
-public record AddMovieRequestDTO(
+import com.vazzarmoviedb.radarrbackend.model.dto.request.addMovies.AddOptionsDTO;
+
+public record AddMovieDTO(
         int tmdbId,
         String title,
         int year,
